@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 import json
 
@@ -15,7 +16,7 @@ for f in sorted(folders):
             pdf_sample = os.path.join(f_path, pdf)
             print(f"Testing PDF {pdf_sample}...")
             
-            cmd = ['python3', 'database/scripts/parse_statement.py', pdf_sample]
+            cmd = [sys.executable, 'database/scripts/parse_statement.py', pdf_sample]
             res = subprocess.run(cmd, capture_output=True, text=True)
             
             if res.returncode == 0:

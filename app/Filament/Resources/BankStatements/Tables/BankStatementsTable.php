@@ -9,6 +9,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use App\Services\ExcelExporter;
 use Illuminate\Support\Facades\Storage;
@@ -72,6 +73,12 @@ class BankStatementsTable
                     ->trueColor('success')
                     ->falseColor('danger'),
             ])
+            ->groups([
+                Group::make('bank_type')
+                    ->label('Banco')
+                    ->collapsible(),
+            ])
+            ->defaultGroup('bank_type')
             ->filters([
                 //
             ])

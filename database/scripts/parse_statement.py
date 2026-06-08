@@ -59,6 +59,9 @@ def detect_bank_type(pdf_path):
         first_page_text = pdf.pages[0].extract_text() or ""
         text_upper = first_page_text.upper()
         
+        if "BBVANET" in text_upper:
+            return "BBVA CH"
+                
         if "MAESTRA PYME" in text_upper:
             return "BBVA CH"
         elif "MAESTRA DOLARES PYME" in text_upper:
@@ -88,7 +91,178 @@ def detect_bank_type(pdf_path):
         
     return "UNKNOWN"
 
+def parse_bbva_net_web_print(pdf_path):
+    metadata = {
+        'account': '',
+        'clabe': '',
+        'period_start': '',
+        'period_end': '',
+        'saldo_inicial': 0.0,
+        'saldo_final': 0.0,
+        'total_cargos': 0.0,
+        'total_abonos': 0.0,
+        'count_cargos': 0,
+        'count_abonos': 0
+    }
+    transactions = []
+    
+    with pdfplumber.open(pdf_path) as pdf:
+        text0 = pdf.pages[0].extract_text() or ""
+        
+        # Extract print date / year
+        m_print = re.search(r'(\d{2})/(\d{2})/(\d{4})', text0)
+        if m_print:
+            print_month = int(m_print.group(2))
+            print_year = int(m_print.group(3))
+        else:
+            print_month, print_year = 6, 2026
+            
+        m_acc = re.search(r'Número\s+de\s+cuenta:\s*(\d+)', text0)
+        if m_acc:
+            metadata['account'] = m_acc.group(1)
+            
+        # Parse pages
+        for page_idx, page in enumerate(pdf.pages):
+            words = page.extract_words()
+            # Transactions are in the middle of the page
+            min_y = 200 if page_idx == 0 else 25
+            max_y = 755
+            table_words = [w for w in words if min_y <= w['top'] <= max_y]
+            
+            # Group words by top coordinate
+            lines_dict = {}
+            for w in table_words:
+                found = False
+                for t in lines_dict:
+                    if abs(t - w['top']) <= 2.5:
+                        lines_dict[t].append(w)
+                        found = True
+                        break
+                if not found:
+                    lines_dict[w['top']] = [w]
+            
+            # Sort tops
+            sorted_tops = sorted(lines_dict.keys())
+            if not sorted_tops:
+                continue
+                
+            # Group lines into blocks representing a transaction
+            blocks = []
+            current_block = [sorted_tops[0]]
+            for t in sorted_tops[1:]:
+                if t - current_block[-1] > 6.0:
+                    blocks.append(current_block)
+                    current_block = [t]
+                else:
+                    current_block.append(t)
+            if current_block:
+                blocks.append(current_block)
+                
+            # Parse each block
+            for block in blocks:
+                # Find the main row (contains date DD-MM and '$')
+                main_top = None
+                main_words = []
+                for top in block:
+                    row_words = sorted(lines_dict[top], key=lambda x: x['x0'])
+                    row_text = ' '.join(w['text'] for w in row_words)
+                    
+                    # Look for date like '06-04' and '$'
+                    m_date = re.match(r'^\d{2}-\d{2}\b', row_text)
+                    if m_date and any(w['text'] == '$' for w in row_words):
+                        main_top = top
+                        main_words = row_words
+                        break
+                
+                if main_top is None:
+                    continue
+                    
+                # Parse main line
+                row_text = ' '.join(w['text'] for w in main_words)
+                m_date = re.match(r'^(\d{2})-(\d{2})', row_text)
+                day, month = int(m_date.group(1)), int(m_date.group(2))
+                
+                # Resolve year
+                if month > print_month and print_month == 1:
+                    year = print_year - 1
+                else:
+                    year = print_year
+                t_date = f"{year:04d}-{month:02d}-{day:02d}"
+                
+                # Extract numbers
+                nums = []
+                for w in main_words:
+                    val = w['text'].replace(',', '')
+                    if re.match(r'^\d+\.\d{2}$', val):
+                        cleaned_num = clean_amount(w['text'])
+                        if cleaned_num is not None:
+                            nums.append((cleaned_num, w['x0']))
+                            
+                if len(nums) < 2:
+                    continue
+                    
+                amount, x_amt = nums[0]
+                balance, _ = nums[1]
+                
+                # Distinguish Cargo vs Abono based on the first '$' X coordinate
+                first_dollar_x = 0.0
+                for w in main_words:
+                    if w['text'] == '$':
+                        first_dollar_x = w['x0']
+                        break
+                        
+                is_abono = first_dollar_x > 370
+                
+                # Extract description from other lines in this block
+                desc_lines = []
+                for top in block:
+                    if top == main_top:
+                        continue
+                    row_words = sorted(lines_dict[top], key=lambda x: x['x0'])
+                    row_text = ' '.join(w['text'] for w in row_words).strip()
+                    if row_text:
+                        desc_lines.append(row_text)
+                concept = ' '.join(desc_lines)
+                
+                transactions.append({
+                    'fecha': t_date,
+                    'codigo': '',
+                    'etiqueta': concept,
+                    'importe': amount if is_abono else -amount,
+                    'saldo': balance
+                })
+                
+    if transactions:
+        cargos = [tx['importe'] for tx in transactions if tx['importe'] < 0]
+        abonos = [tx['importe'] for tx in transactions if tx['importe'] > 0]
+        
+        metadata['total_cargos'] = sum(abs(c) for c in cargos)
+        metadata['total_abonos'] = sum(abonos)
+        metadata['count_cargos'] = len(cargos)
+        metadata['count_abonos'] = len(abonos)
+        
+        # Newest transaction is at index 0
+        metadata['saldo_final'] = transactions[0]['saldo']
+        
+        # Oldest transaction is at index -1
+        last_tx = transactions[-1]
+        if last_tx['importe'] < 0:
+            metadata['saldo_inicial'] = last_tx['saldo'] + abs(last_tx['importe'])
+        else:
+            metadata['saldo_inicial'] = last_tx['saldo'] - last_tx['importe']
+            
+        metadata['period_start'] = min(tx['fecha'] for tx in transactions)
+        metadata['period_end'] = max(tx['fecha'] for tx in transactions)
+        
+    return metadata, transactions
+
 def parse_bbva_ch_us(pdf_path, is_us=False):
+    # Check if the PDF is a BBVA Net web printout
+    with pdfplumber.open(pdf_path) as pdf:
+        text0 = pdf.pages[0].extract_text() or ""
+        if "BBVANET" in text0.upper():
+            return parse_bbva_net_web_print(pdf_path)
+
     metadata = {
         'account': '',
         'clabe': '',
