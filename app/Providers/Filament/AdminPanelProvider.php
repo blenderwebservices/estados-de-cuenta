@@ -28,6 +28,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->registration()
             ->colors([
                 'primary' => Color::Amber,
             ])
@@ -38,8 +39,13 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                AccountWidget::class,
-                FilamentInfoWidget::class,
+                // Default widgets removed
+            ])
+            ->navigationItems([
+                \Filament\Navigation\NavigationItem::make('Ir al Sitio Web')
+                    ->url('/', shouldOpenInNewTab: false)
+                    ->icon('heroicon-o-arrow-left-on-rectangle')
+                    ->sort(-1),
             ])
             ->middleware([
                 EncryptCookies::class,
