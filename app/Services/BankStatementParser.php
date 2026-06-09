@@ -42,7 +42,7 @@ class BankStatementParser
 
         // Execute using Laravel's Process facade
         $result = Process::run([
-            '/usr/local/bin/python3',
+            config('services.python.path'),
             $scriptPath,
             $pdfPath,
             $statement->bank_type
