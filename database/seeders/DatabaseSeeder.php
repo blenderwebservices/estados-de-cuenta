@@ -21,5 +21,31 @@ class DatabaseSeeder extends Seeder
             'name' => 'Administrador',
             'password' => bcrypt('admin123456'),
         ]);
+
+        \App\Models\Caso::updateOrCreate([
+            'caso' => 'COMISION',
+        ], [
+            'sugerencia' => 'Comisión bancaria - Sin factura',
+        ]);
+
+        \App\Models\Caso::updateOrCreate([
+            'caso' => 'INTERESES',
+        ], [
+            'sugerencia' => 'Intereses ganados - Sin factura',
+        ]);
+
+        \App\Models\Caso::updateOrCreate([
+            'caso' => 'IVA',
+        ], [
+            'sugerencia' => 'Impuesto al Valor Agregado',
+        ]);
+
+        \App\Models\Contacto::updateOrCreate([
+            'nombre' => 'JUAN PEREZ',
+        ]);
+
+        \App\Models\Contacto::updateOrCreate([
+            'nombre' => 'COMERCIALIZADORA',
+        ]);
     }
 }

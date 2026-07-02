@@ -16,7 +16,10 @@ class BankStatementLine extends Model
         'codigo',
         'etiqueta',
         'importe',
-        'saldo'
+        'saldo',
+        'casos',
+        'sugerencia',
+        'contacto',
     ];
 
     protected $casts = [

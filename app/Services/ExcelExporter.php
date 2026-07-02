@@ -53,8 +53,8 @@ class ExcelExporter
         $row = 2;
         foreach ($statement->lines()->orderBy('fecha')->orderBy('id')->get() as $line) {
             $sheetTxs->setCellValue('A' . $row, Date::PHPToExcel($line->fecha));
-            $sheetTxs->setCellValue('B' . $row, '');
-            $sheetTxs->setCellValue('C' . $row, '');
+            $sheetTxs->setCellValue('B' . $row, $line->sugerencia ?? '');
+            $sheetTxs->setCellValue('C' . $row, $line->contacto ?? '');
             $sheetTxs->setCellValue('D' . $row, (float) $line->importe);
             $sheetTxs->setCellValue('E' . $row, $line->etiqueta);
 

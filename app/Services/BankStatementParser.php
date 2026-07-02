@@ -121,17 +121,46 @@ class BankStatementParser
             'error_message' => null
         ]);
 
+        // Load cases and contacts for matching
+        $casos = \App\Models\Caso::all();
+        $contactos = \App\Models\Contacto::all();
+
         // Delete existing lines if any
         $statement->lines()->delete();
 
         // Create transaction lines
         foreach ($transactions as $tx) {
+            $etiqueta = $tx['etiqueta'];
+
+            // Match cases
+            $matchedCaso = null;
+            $matchedSugerencia = null;
+            foreach ($casos as $casoItem) {
+                if (stripos($etiqueta, $casoItem->caso) !== false) {
+                    $matchedCaso = $casoItem->caso;
+                    $matchedSugerencia = $casoItem->sugerencia;
+                    break;
+                }
+            }
+
+            // Match contacts
+            $matchedContacto = null;
+            foreach ($contactos as $contactoItem) {
+                if (stripos($etiqueta, $contactoItem->nombre) !== false) {
+                    $matchedContacto = $contactoItem->nombre;
+                    break;
+                }
+            }
+
             $statement->lines()->create([
                 'fecha' => $tx['fecha'],
                 'codigo' => $tx['codigo'] ?? null,
-                'etiqueta' => $tx['etiqueta'],
+                'etiqueta' => $etiqueta,
                 'importe' => $tx['importe'],
-                'saldo' => $tx['saldo'] ?? null
+                'saldo' => $tx['saldo'] ?? null,
+                'casos' => $matchedCaso,
+                'sugerencia' => $matchedSugerencia,
+                'contacto' => $matchedContacto,
             ]);
         }
     }

@@ -38,6 +38,22 @@ class LinesRelationManager extends RelationManager
                     ->searchable()
                     ->wrap(),
 
+                TextColumn::make('casos')
+                    ->label('Caso')
+                    ->placeholder('-')
+                    ->searchable(),
+
+                TextColumn::make('sugerencia')
+                    ->label('Sugerencia')
+                    ->placeholder('-')
+                    ->searchable()
+                    ->wrap(),
+
+                TextColumn::make('contacto')
+                    ->label('Contacto')
+                    ->placeholder('-')
+                    ->searchable(),
+
                 TextColumn::make('importe')
                     ->label('Importe')
                     ->money('MXN')
