@@ -122,7 +122,11 @@ class BankStatementParser
         ]);
 
         // Load cases and contacts for matching
-        $casos = \App\Models\Caso::all();
+        $casos = \App\Models\Caso::where(function ($query) use ($statement) {
+            $query->whereNull('estado_cuenta')
+                  ->orWhere('estado_cuenta', '')
+                  ->orWhere('estado_cuenta', $statement->bank_type);
+        })->get();
         $contactos = \App\Models\Contacto::all();
 
         // Delete existing lines if any
@@ -135,20 +139,25 @@ class BankStatementParser
             // Match cases
             $matchedCaso = null;
             $matchedSugerencia = null;
+            $matchedContacto = null;
             foreach ($casos as $casoItem) {
                 if (stripos($etiqueta, $casoItem->caso) !== false) {
                     $matchedCaso = $casoItem->caso;
                     $matchedSugerencia = $casoItem->sugerencia;
+                    if ($casoItem->contacto_sugerido) {
+                        $matchedContacto = $casoItem->contacto_sugerido;
+                    }
                     break;
                 }
             }
 
             // Match contacts
-            $matchedContacto = null;
-            foreach ($contactos as $contactoItem) {
-                if (stripos($etiqueta, $contactoItem->nombre) !== false) {
-                    $matchedContacto = $contactoItem->nombre;
-                    break;
+            if (!$matchedContacto) {
+                foreach ($contactos as $contactoItem) {
+                    if (stripos($etiqueta, $contactoItem->nombre) !== false) {
+                        $matchedContacto = $contactoItem->nombre;
+                        break;
+                    }
                 }
             }
 

@@ -13,5 +13,13 @@ class Contacto extends Model
 
     protected $fillable = [
         'nombre',
+        'id_externo',
+        'email',
+        'telefono',
+        'esempresa',
+    ];
+
+    protected $casts = [
+        'esempresa' => 'boolean',
     ];
 }

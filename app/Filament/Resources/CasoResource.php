@@ -12,6 +12,7 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
@@ -40,6 +41,26 @@ class CasoResource extends Resource
                     ->label('Sugerencia')
                     ->required()
                     ->placeholder('Ej. Comisión bancaria - Sin factura'),
+
+                Select::make('estado_cuenta')
+                    ->label('Estado de Cuenta')
+                    ->options([
+                        'AMEX TC' => 'American Express TC (Crédito)',
+                        'BANAMEX CH' => 'Citibanamex CH (Cheques)',
+                        'BBVA CH' => 'BBVA CH (Cheques)',
+                        'BBVA TC' => 'BBVA TC (Crédito)',
+                        'BBVA US' => 'BBVA US (Dólares)',
+                        'SCOTIA CH' => 'Scotiabank CH (Cheques)',
+                    ])
+                    ->placeholder('Todos los estados de cuenta')
+                    ->nullable(),
+
+                Select::make('contacto_sugerido')
+                    ->label('Contacto Sugerido')
+                    ->options(fn () => \App\Models\Contacto::pluck('nombre', 'nombre')->toArray())
+                    ->searchable()
+                    ->placeholder('Ninguno / Autodetectar')
+                    ->nullable(),
             ]);
     }
 
@@ -57,6 +78,18 @@ class CasoResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->wrap(),
+
+                TextColumn::make('estado_cuenta')
+                    ->label('Estado de Cuenta')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('Todos'),
+
+                TextColumn::make('contacto_sugerido')
+                    ->label('Contacto Sugerido')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('Ninguno'),
             ])
             ->filters([])
             ->actions([

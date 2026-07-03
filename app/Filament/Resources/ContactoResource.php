@@ -12,7 +12,9 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
@@ -31,10 +33,27 @@ class ContactoResource extends Resource
     {
         return $schema
             ->components([
+                TextInput::make('id_externo')
+                    ->label('ID Externo')
+                    ->placeholder('Ej. __export__.res_partner_xxxx'),
+                
                 TextInput::make('nombre')
                     ->label('Nombre del Contacto')
                     ->required()
                     ->placeholder('Ej. JUAN PEREZ'),
+
+                TextInput::make('email')
+                    ->label('Correo Electrónico')
+                    ->email()
+                    ->placeholder('Ej. contacto@empresa.com'),
+
+                TextInput::make('telefono')
+                    ->label('Teléfono')
+                    ->placeholder('Ej. 5512345678'),
+
+                Toggle::make('esempresa')
+                    ->label('Es Empresa')
+                    ->default(true),
             ]);
     }
 
@@ -42,9 +61,29 @@ class ContactoResource extends Resource
     {
         return $table
             ->columns([
+                TextColumn::make('id_externo')
+                    ->label('ID Externo')
+                    ->searchable()
+                    ->sortable(),
+
                 TextColumn::make('nombre')
                     ->label('Nombre')
                     ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('email')
+                    ->label('Correo Electrónico')
+                    ->searchable()
+                    ->sortable(),
+
+                TextColumn::make('telefono')
+                    ->label('Teléfono')
+                    ->searchable()
+                    ->sortable(),
+
+                IconColumn::make('esempresa')
+                    ->label('Es Empresa')
+                    ->boolean()
                     ->sortable(),
             ])
             ->filters([])

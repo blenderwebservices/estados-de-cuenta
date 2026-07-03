@@ -14,5 +14,7 @@ class Caso extends Model
     protected $fillable = [
         'caso',
         'sugerencia',
+        'estado_cuenta',
+        'contacto_sugerido',
     ];
 }

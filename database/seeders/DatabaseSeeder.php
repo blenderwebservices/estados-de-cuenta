@@ -40,12 +40,7 @@ class DatabaseSeeder extends Seeder
             'sugerencia' => 'Impuesto al Valor Agregado',
         ]);
 
-        \App\Models\Contacto::updateOrCreate([
-            'nombre' => 'JUAN PEREZ',
-        ]);
-
-        \App\Models\Contacto::updateOrCreate([
-            'nombre' => 'COMERCIALIZADORA',
-        ]);
+        $this->call(ContactoSeeder::class);
+        $this->call(ContactoIndividuosSeeder::class);
     }
 }
