@@ -9,6 +9,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Schemas\Components\Grid;
 
 class LinesRelationManager extends RelationManager
 {
@@ -18,7 +19,46 @@ class LinesRelationManager extends RelationManager
 
     public function form(Schema $schema): Schema
     {
-        return $schema;
+        return $schema
+            ->components([
+                Grid::make(2)
+                    ->schema([
+                        Forms\Components\DatePicker::make('fecha')
+                            ->label('Fecha')
+                            ->required(),
+                        Forms\Components\TextInput::make('codigo')
+                            ->label('Código')
+                            ->placeholder('-'),
+                        Forms\Components\TextInput::make('etiqueta')
+                            ->label('Concepto / Etiqueta')
+                            ->required()
+                            ->columnSpanFull(),
+                        Forms\Components\TextInput::make('importe')
+                            ->label('Importe')
+                            ->numeric()
+                            ->required(),
+                        Forms\Components\TextInput::make('saldo')
+                            ->label('Saldo')
+                            ->numeric()
+                            ->placeholder('-'),
+                        Forms\Components\Select::make('casos')
+                            ->label('Caso')
+                            ->options(fn () => \App\Models\Caso::pluck('caso', 'caso')->toArray())
+                            ->searchable()
+                            ->placeholder('Ninguno')
+                            ->nullable(),
+                        Forms\Components\Select::make('contacto')
+                            ->label('Contacto')
+                            ->options(fn () => \App\Models\Contacto::pluck('nombre', 'nombre')->toArray())
+                            ->searchable()
+                            ->placeholder('Ninguno')
+                            ->nullable(),
+                        Forms\Components\TextInput::make('sugerencia')
+                            ->label('Sugerencia')
+                            ->columnSpanFull()
+                            ->placeholder('-'),
+                    ])
+            ]);
     }
 
     public function table(Table $table): Table
@@ -128,6 +168,8 @@ class LinesRelationManager extends RelationManager
                     ->icon('heroicon-o-arrow-path'),
             ])
             ->actions([
+                \Filament\Actions\EditAction::make(),
+                \Filament\Actions\DeleteAction::make(),
                 \Filament\Actions\Action::make('crearCaso')
                     ->label('Crear Caso')
                     ->icon('heroicon-o-plus')

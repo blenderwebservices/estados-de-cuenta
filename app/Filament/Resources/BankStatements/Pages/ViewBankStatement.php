@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\BankStatements\Pages;
 
 use App\Filament\Resources\BankStatements\BankStatementResource;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewBankStatement extends ViewRecord
@@ -18,6 +19,8 @@ class ViewBankStatement extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [];
+        return [
+            EditAction::make(),
+        ];
     }
 }
