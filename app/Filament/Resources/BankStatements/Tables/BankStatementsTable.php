@@ -89,10 +89,15 @@ class BankStatementsTable
                     ->icon('heroicon-o-document-arrow-down')
                     ->color('success')
                     ->action(function ($record) {
-                        $exporter = app(ExcelExporter::class);
-                        $filePath = $exporter->export($record);
+                        $exporter = app(\App\Services\ExcelExporter::class);
+                        $spreadsheet = $exporter->getSpreadsheet($record);
+                        $fileName = str_replace('.pdf', '.xlsx', $record->file_name);
+                        $fileName = str_replace(' ', '_', $fileName);
                         
-                        return response()->download($filePath, str_replace('.pdf', '.xlsx', $record->file_name))->deleteFileAfterSend(true);
+                        return response()->streamDownload(function () use ($spreadsheet) {
+                            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+                            $writer->save('php://output');
+                        }, $fileName);
                     })
                     ->visible(fn ($record) => $record->status === 'completed'),
                     

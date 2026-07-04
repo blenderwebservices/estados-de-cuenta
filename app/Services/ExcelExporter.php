@@ -13,7 +13,7 @@ use PhpOffice\PhpSpreadsheet\Shared\Date;
 
 class ExcelExporter
 {
-    public function export(BankStatement $statement): string
+    public function getSpreadsheet(BankStatement $statement): Spreadsheet
     {
         $spreadsheet = new Spreadsheet();
 
@@ -207,7 +207,13 @@ class ExcelExporter
             $sheetRes->getColumnDimension($col)->setAutoSize(true);
         }
 
-        // Write to a temporary file path
+        return $spreadsheet;
+    }
+
+    public function export(BankStatement $statement): string
+    {
+        $spreadsheet = $this->getSpreadsheet($statement);
+        
         $tempFile = tempnam(sys_get_temp_dir(), 'bank_statement_export');
         $writer = new Xlsx($spreadsheet);
         $writer->save($tempFile);
