@@ -30,30 +30,28 @@ A continuación, se detalla una sugerencia de despliegue en un servidor Ubuntu a
 ### 2. Preparación del Entorno Python (venv)
 Para asegurar que las dependencias de Python (como librerías de generación de PDF o utilidades de análisis) no interfieran con el sistema operativo y la app sea portable, se debe usar un entorno virtual (`venv`) dentro de la misma estructura del proyecto.
 
-1. **Crear el Entorno Virtual:** 
-   Dentro del directorio raíz del proyecto (donde se encuentra `artisan`), ejecuta el comando para inicializar la carpeta `venv`:
+1. **Creación Automática vía Composer:** 
+   El archivo `composer.json` ha sido configurado para manejar esto de manera transparente. Al ejecutar comandos como `composer update` (o `composer run setup`), se disparará automáticamente el script integrado `setup-python`.
+
+2. **Ejecución Manual del Entorno:**
+   Si en algún momento necesitas forzar la instalación o actualización de las dependencias de Python (por ejemplo, después de modificar `requirements.txt`), simplemente ejecuta:
    ```bash
-   python3 -m venv venv
+   composer run setup-python
    ```
-2. **Activar e Instalar Dependencias de Python:**
-   Activa el entorno e instala las dependencias (como pdfkit, pandas, weasyprint, etc.):
-   ```bash
-   source venv/bin/activate
-   pip install -r requirements.txt # (Asegúrate de contar con este archivo si tienes varias dependencias)
-   deactivate
-   ```
+   Este comando genérico (válido en Local y Ubuntu/Plesk) creará la carpeta `venv` si no existe, e instalará dependencias como `pdfplumber` sin necesidad de activar entornos manualmente en la terminal.
+
 3. **Ejecución Autónoma desde Laravel:**
    Cuando Laravel necesite invocar el script de Python para renderizar el PDF, no debe usar el comando `python` global del servidor, sino el binario específico del entorno virtual local. 
    
-   Ejemplo de cómo orquestar la ejecución desde PHP usando `Symfony\Component\Process\Process`:
+   Ejemplo de cómo la aplicación orquesta internamente la ejecución desde PHP usando `Symfony\Component\Process\Process` (la configuración base ya lee de este directorio local `venv`):
    ```php
    use Symfony\Component\Process\Process;
 
    // Apuntamos al binario de Python DENTRO del venv local de la app
-   $pythonBinary = base_path('venv/bin/python');
+   $pythonBinary = config('services.python.path'); // Resuelve por defecto a base_path('venv/bin/python')
    
    // La ruta del script a ejecutar
-   $scriptPath = base_path('scripts/render_pdf.py'); // Ajusta la ruta real de tu script
+   $scriptPath = base_path('database/scripts/parse_statement.py');
    
    // Ejecutamos el proceso
    $process = new Process([$pythonBinary, $scriptPath, $argumento1]);

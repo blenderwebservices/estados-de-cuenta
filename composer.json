@@ -40,7 +40,8 @@
             "@php artisan key:generate",
             "@php artisan migrate --force",
             "npm install --ignore-scripts",
-            "npm run build"
+            "npm run build",
+            "@composer setup-python"
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
@@ -56,7 +57,12 @@
             "@php artisan filament:upgrade"
         ],
         "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force",
+            "@composer setup-python"
+        ],
+        "setup-python": [
+            "python3 -m venv venv",
+            "venv/bin/pip install -r requirements.txt"
         ],
         "post-root-package-install": [
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""

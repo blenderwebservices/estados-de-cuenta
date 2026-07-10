@@ -36,7 +36,7 @@ return [
     ],
 
     'python' => [
-        'path' => env('PYTHON_PATH', '/usr/local/bin/python3'),
+        'path' => env('PYTHON_PATH', base_path('venv/bin/python')),
     ],
 
 ];
