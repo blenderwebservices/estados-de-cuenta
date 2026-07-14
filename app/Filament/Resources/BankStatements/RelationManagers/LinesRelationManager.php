@@ -46,13 +46,75 @@ class LinesRelationManager extends RelationManager
                             ->options(fn () => \App\Models\Caso::pluck('caso', 'caso')->toArray())
                             ->searchable()
                             ->placeholder('Ninguno')
-                            ->nullable(),
+                            ->nullable()
+                            ->suffixAction(
+                                \Filament\Actions\Action::make('aplicar')
+                                    ->icon('heroicon-m-check')
+                                    ->color('success')
+                                    ->tooltip('Aplicar Caso a la línea')
+                                    ->action(function (callable $set, $state) {
+                                        if ($state) {
+                                            $caso = \App\Models\Caso::where('caso', $state)->first();
+                                            if ($caso) {
+                                                $set('sugerencia', $caso->sugerencia);
+                                                if ($caso->contacto_sugerido) {
+                                                    $set('contacto', $caso->contacto_sugerido);
+                                                }
+                                                \Filament\Notifications\Notification::make()
+                                                    ->title('Caso aplicado a la forma')
+                                                    ->success()
+                                                    ->send();
+                                            }
+                                        }
+                                    })
+                            ),
                         Forms\Components\Select::make('contacto')
                             ->label('Contacto')
                             ->options(fn () => \App\Models\Contacto::pluck('nombre', 'nombre')->toArray())
                             ->searchable()
                             ->placeholder('Ninguno')
-                            ->nullable(),
+                            ->nullable()
+                            ->createOptionForm([
+                                Forms\Components\TextInput::make('id_externo')
+                                    ->label('ID Externo')
+                                    ->placeholder('Ej. __export__.res_partner_xxxx'),
+                                Forms\Components\TextInput::make('nombre')
+                                    ->label('Nombre del Contacto')
+                                    ->required()
+                                    ->placeholder('Ej. JUAN PEREZ'),
+                                Forms\Components\TextInput::make('email')
+                                    ->label('Correo Electrónico')
+                                    ->email()
+                                    ->placeholder('Ej. contacto@empresa.com'),
+                                Forms\Components\TextInput::make('telefono')
+                                    ->label('Teléfono')
+                                    ->placeholder('Ej. 5512345678'),
+                                Forms\Components\Toggle::make('esempresa')
+                                    ->label('Es Empresa')
+                                    ->default(true),
+                            ])
+                            ->createOptionUsing(function (array $data) {
+                                $contacto = \App\Models\Contacto::create($data);
+                                return $contacto->nombre;
+                            })
+                            ->suffixAction(
+                                \Filament\Actions\Action::make('eliminar')
+                                    ->icon('heroicon-m-trash')
+                                    ->color('danger')
+                                    ->tooltip('Eliminar este contacto')
+                                    ->requiresConfirmation()
+                                    ->action(function (callable $set, $state) {
+                                        if (empty($state)) {
+                                            return;
+                                        }
+                                        \App\Models\Contacto::where('nombre', $state)->delete();
+                                        $set('contacto', null);
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Contacto eliminado')
+                                            ->success()
+                                            ->send();
+                                    })
+                            ),
                         Forms\Components\TextInput::make('sugerencia')
                             ->label('Sugerencia')
                             ->columnSpanFull()
@@ -113,10 +175,38 @@ class LinesRelationManager extends RelationManager
                 //
             ])
             ->headerActions([
+                \Filament\Actions\Action::make('download_excel')
+                    ->label('Exportar Excel')
+                    ->icon('heroicon-o-document-arrow-down')
+                    ->color('success')
+                    ->action(function ($livewire) {
+                        $record = $livewire->getOwnerRecord();
+                        $exporter = app(\App\Services\ExcelExporter::class);
+                        $spreadsheet = $exporter->getSpreadsheet($record);
+                        $fileName = str_replace('.pdf', '.xlsx', $record->file_name);
+                        $fileName = str_replace(' ', '_', $fileName);
+                        
+                        return response()->streamDownload(function () use ($spreadsheet) {
+                            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+                            $writer->save('php://output');
+                        }, $fileName);
+                    })
+                    ->visible(fn ($livewire) => $livewire->getOwnerRecord()->status === 'completed'),
                 \Filament\Actions\Action::make('aplicarCasos')
                     ->label('APLICAR CASOS')
-                    ->action(function ($livewire) {
+                    ->form([
+                        Forms\Components\Radio::make('modo')
+                            ->label('¿Qué deseas hacer?')
+                            ->options([
+                                'vacios' => 'Solo a los que NO tengan caso, sugerencia ni contacto',
+                                'todos' => 'Sobrescribir a todos (reemplazar actuales)',
+                            ])
+                            ->default('vacios')
+                            ->required(),
+                    ])
+                    ->action(function ($livewire, array $data) {
                         $statement = $livewire->getOwnerRecord();
+                        $modo = $data['modo'];
                         
                         $casos = \App\Models\Caso::where(function ($query) use ($statement) {
                             $query->whereNull('estado_cuenta')
@@ -127,6 +217,12 @@ class LinesRelationManager extends RelationManager
                         $contactos = \App\Models\Contacto::all();
                         
                         foreach ($statement->lines as $line) {
+                            if ($modo === 'vacios') {
+                                if (!empty($line->casos) || !empty($line->sugerencia) || !empty($line->contacto)) {
+                                    continue;
+                                }
+                            }
+                            
                             $etiqueta = $line->etiqueta;
                             $matchedCaso = null;
                             $matchedSugerencia = null;
